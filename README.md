@@ -1,6 +1,6 @@
 # Post Box Snapshooter
 
-- Based on ESP32-CAM wit OV
+- Based on ESP32-CAM wit OV2640 camera
   - Details: <https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/>
 - Takes every hour an snapshot (max. 800x600) from the post box and upload it via FTP
 
