@@ -11,3 +11,5 @@ const int daylightOffset_sec = 0;
 const char* ftp_server = "myFtpHostOrIP";
 const char* ftp_user = "alpineftp";
 const char* ftp_pass = "alpineftp";
+const char* ftp_work_dir = "/ftp/alpineftp";
+const char* ftp_update_file = "firmware.bin";

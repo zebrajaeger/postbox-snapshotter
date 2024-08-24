@@ -31,9 +31,9 @@ class ESP32_FTPClient
   unsigned char clientBuf[1500];
   size_t bufferSize = 1500;
   uint16_t timeout = 10000;
-  WiFiClient* GetDataClient();
   
   public:
+  WiFiClient* GetDataClient();
   ESP32_FTPClient(const char* _serverAdress, uint16_t _port, const char* _userName, const char* _passWord, uint16_t _timeout = 10000, uint8_t _verbose = 1);
   ESP32_FTPClient(const char* _serverAdress, const char* _userName, const char* _passWord, uint16_t _timeout = 10000, uint8_t _verbose = 1);
   void OpenConnection();
@@ -45,7 +45,8 @@ class ESP32_FTPClient
   void CloseFile ();
   void GetFTPAnswer (char* result = NULL, int offsetStart = 0);
   void GetLastModifiedTime(const char* fileName, char* result);
-  void RenameFile(char* from, char* to);
+  size_t getSize(const char* fileName);
+  void RenameFile(const char* from, const char* to);
   void Write(const char * str);
   void InitFile(const char* type);
   void ChangeWorkDir(const char * dir);
@@ -55,5 +56,6 @@ class ESP32_FTPClient
   void ContentListWithListCommand(const char * dir, String * list);
   void DownloadString(const char * filename, String &str);
   void DownloadFile(const char * filename, unsigned char * buf, size_t length, bool printUART = false);
+  Stream* requestFile(const char * filename);
   void enableDebug();
 };

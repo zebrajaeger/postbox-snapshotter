@@ -2,7 +2,12 @@
 
 - Based on ESP32-CAM wit OV2640 camera
   - Details: <https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/>
-- Takes every hour an snapshot (max. 800x600) from the post box and upload it via FTP
+
+## Features
+
+- Takes every hour an snapshot uploads it via FTP
+- Special pin (GPIO12, active-low) keeps device in OTA mode
+- Update via FTP possible (put the firmware.bin file into the ftp upload folder)
 
 ## Configure and build
 
@@ -18,10 +23,19 @@
 
 - Case: I use <https://www.thingiverse.com/thing:5638294>
 
-## Improvments
+## ToDo
 
-- Store config in LittleFS
-- Using a WiFi manager
-- Using  <https://esphome.github.io/esp-web-tools/> like WLED: <https://install.wled.me/>
-- Add PSRAM support for bigger images (IPUS IP6404LQ: (2.7..3.6)V, <./doc/doc/IPUS_IPS6404_Datasheet.pdf>)
-- Consider daylight saving time
+### Important
+
+- [X] Firmware image on ftp server for updates
+- [X] Add PSRAM support for bigger images (IPUS IP6404LQ: (2.7..3.6)V, <./doc/doc/IPUS_IPS6404_Datasheet.pdf>)
+
+### Nice to have
+
+- [ ] Store config in LittleFS (but how to set it?)
+- [ ] Consider daylight saving time
+
+### Maybe later...
+
+- [ ] Using a WiFi manager
+- [ ] Using  <https://esphome.github.io/esp-web-tools/> like WLED: <https://install.wled.me/>

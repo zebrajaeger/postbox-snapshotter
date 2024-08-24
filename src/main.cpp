@@ -3,11 +3,10 @@
 #include <WiFi.h>
 #include <esp_camera.h>
 
+#include "credentials.h"
 #include "driver/rtc_io.h"
 #include "soc/rtc_cntl_reg.h"  // Disable brownout problems
 #include "soc/soc.h"           // Disable brownout problems
-
-#include "credentials.h"
 
 // Camera Pin-Definitions für ESP32-CAM
 #define PWDN_GPIO_NUM 32
@@ -41,6 +40,7 @@ void setupCamera();
 void takePictureAndSendFTP();
 void enterDeepSleep();
 void printLocalTime();
+void updateFirmware();
 
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  // disable brownout detector
@@ -86,7 +86,8 @@ void setup() {
       delay(100);
     }
   } else {
-    takePictureAndSendFTP();
+    // takePictureAndSendFTP();
+    updateFirmware();
     WiFi.mode(WIFI_OFF);
     enterDeepSleep();
   }
@@ -112,11 +113,10 @@ void setupCamera() {
   config.pin_sccb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
+  config.xclk_freq_hz = 2000000;
   config.pixel_format = PIXFORMAT_JPEG;
-
-  //   config.frame_size = FRAMESIZE_UXGA;
-  config.frame_size = FRAMESIZE_SVGA, config.jpeg_quality = 16;
+  config.frame_size = FRAMESIZE_VGA;
+  config.jpeg_quality = 10;
   config.fb_count = 1;
   config.fb_location = CAMERA_FB_IN_DRAM, config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
 
@@ -131,6 +131,20 @@ void setupCamera() {
   }
 }
 
+int8_t getTime(String& result) {
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Failed to obtain time");
+    return -1;
+  }
+  char ts[48] = {'\0'};
+  snprintf(ts, 48, "%04u_%02u_%02u-%02u_%02u_%02u", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  result = ts;
+  return 0;
+}
+
 void takePictureAndSendFTP() {
   // acquire a frame
   digitalWrite(FLASH_LED_PIN, HIGH);
@@ -141,22 +155,28 @@ void takePictureAndSendFTP() {
     Serial.println("Camera Capture Failed");
   }
 
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
+  String f;
+  if (getTime(f)) {
+    Serial.println("Error: Could not aquire time");
     return;
   }
-  char ts[48] = {'\0'};
-  snprintf(ts, 48, "%04u_%02u_%02u-%02u_%02u_%02u.jpg", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
-           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  //   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  //   struct tm timeinfo;
+  //   if (!getLocalTime(&timeinfo)) {
+  //     Serial.println("Failed to obtain time");
+  //     return;
+  //   }
+  //   char ts[48] = {'\0'};
+  //   snprintf(ts, 48, "%04u_%02u_%02u-%02u_%02u_%02u.jpg", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1,
+  //   timeinfo.tm_mday,
+  //            timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
   Serial.print("Filename: ");
-  Serial.println((char*)ts);
+  Serial.println(f);
 
   ftp.OpenConnection();
-  ftp.ChangeWorkDir("/ftp/alpineftp");
+  ftp.ChangeWorkDir(ftp_work_dir);
   ftp.InitFile("Type I");
-  ftp.NewFile(ts);
+  ftp.NewFile(f.c_str());
   ftp.WriteData(fb->buf, fb->len);
   ftp.CloseFile();
   ftp.CloseConnection();
@@ -167,11 +187,77 @@ void takePictureAndSendFTP() {
 
 void enterDeepSleep() {
   uint64_t temp = 1000000;  // 1s
-  temp *= 3600;             // 1h
+                            //   temp *= 3600;             // 1h
+  temp *= 60;               // 1m
   esp_sleep_enable_timer_wakeup(temp);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, 0);  // WAKEUP_PIN als Wakeup Quelle
-  rtc_gpio_isolate(GPIO_NUM_4);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, 0);  // WAKEUP_PIN
   esp_deep_sleep_start();
+}
+
+void updateFirmware() {
+  Serial.println("* Try to update firmware");
+  ftp.OpenConnection();
+  ftp.InitFile("Type I");
+  ftp.ChangeWorkDir(ftp_work_dir);
+
+  size_t s1 = ftp.getSize(ftp_update_file);
+  Serial.print("size :");
+  Serial.println(s1);
+
+  if (s1 == 0) {
+    Serial.println("Filesize == 0. Stopping update");
+    ftp.CloseFile();
+    ftp.CloseConnection();
+    return;
+  }
+
+  Stream* stream = ftp.requestFile(ftp_update_file);
+  if (!stream) {
+    Serial.println("Could not open firmware file");
+    return;
+  }
+
+  // debug
+  //   uint8_t buffer[16];
+  //   stream->readBytes((uint8_t*)&buffer, 16);
+  //   for (uint8_t i = 0; i < 16; ++i) {
+  //     printf("0x%02X: 0x%02X\n", i, buffer[i]);
+  //   }
+
+  Update.onProgress([](size_t progress, size_t total) { Serial.println(progress * 100 / total); });
+
+  if (Update.begin(s1, U_FLASH, 4)) {
+    size_t written = Update.writeStream(*stream);
+    if (written == Update.size()) {
+      Serial.println("Firmware Update erfolgreich geschrieben.");
+    } else {
+      Serial.println("Firmware Update fehlgeschlagen.");
+    }
+
+    if (Update.end()) {
+      Serial.println("Update abgeschlossen!");
+      if (Update.isFinished()) {
+        Serial.println("Backup file abgeschlossen!");
+        String bck = ftp_update_file;
+        String time;
+        getTime(time);
+        bck = bck + "." + time; 
+        ftp.RenameFile(ftp_update_file, bck.c_str());
+
+        Serial.println("Neustart...");
+        ESP.restart();
+      } else {
+        Serial.println("Update nicht abgeschlossen.");
+      }
+    } else {
+      // !!!!
+      Serial.printf("Update Fehler: %s\n", Update.errorString());
+    }
+  } else {
+    Serial.println("Update Begin fehlgeschlagen");
+  }
+  ftp.CloseFile();
+  ftp.CloseConnection();
 }
 
 void loop() {}

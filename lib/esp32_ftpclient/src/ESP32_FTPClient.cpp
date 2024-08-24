@@ -42,6 +42,20 @@ void ESP32_FTPClient::GetLastModifiedTime(const char  * fileName, char* result) 
   GetFTPAnswer (result, 4);
 }
 
+size_t ESP32_FTPClient::getSize(const char  * fileName) {
+  FTPdbgn("Send SIZE");
+  if(!isConnected()) return 0;
+  client.print(F("SIZE "));
+  client.println(F(fileName));
+  // char temp[sizeof(outBuf)];
+  // FTPdbgn("AAAAAA");
+  GetFTPAnswer ();
+  // FTPdbgn("BBBBB");
+  Serial.println(&outBuf[4]);
+
+  return strtoul((char*)&outBuf[4], NULL, 10); 
+}
+
 void ESP32_FTPClient::WriteClientBuffered(WiFiClient* cli, unsigned char * data, int dataLength) {
   if(!isConnected()) return;
 
@@ -102,7 +116,6 @@ void ESP32_FTPClient::GetFTPAnswer (char* result, int offsetStart) {
       result[i] = outBuf[i - offsetStart];
     }
     FTPdbg("Result: ");
-    //Serial.write(result);
     FTPdbg(outBuf);
     FTPdbgn("Result end");
   }
@@ -161,7 +174,7 @@ void ESP32_FTPClient::OpenConnection() {
   GetFTPAnswer();
 }
 
-void ESP32_FTPClient::RenameFile(char* from, char* to) {
+void ESP32_FTPClient::RenameFile(const char* from, const  char* to) {
   FTPdbgn("Send RNFR");
   if(!isConnected()) return;
   client.print(F("RNFR "));
@@ -330,6 +343,28 @@ void ESP32_FTPClient::DownloadString(const char * filename, String &str) {
     str += GetDataClient()->readString();
   }
 
+}
+
+Stream* ESP32_FTPClient::requestFile(const char * filename) {
+  FTPdbgn("Send RETR");
+  if(!isConnected())  {
+    Serial.println("[FTP] error: not connected");
+    return NULL;
+  }
+  client.print(F("RETR "));
+  client.println(F(filename));
+  
+  char _resp[ sizeof(outBuf) ];    
+  GetFTPAnswer(_resp);
+
+  unsigned long _m = millis();
+  while( !dclient.available() && millis() < _m + timeout) delay(1);
+    if(!dclient.available()){
+    Serial.println("[FTP] error: timeout");
+    return NULL;
+  }
+
+  return &dclient;
 }
 
 void ESP32_FTPClient::DownloadFile(const char * filename, unsigned char * buf, size_t length, bool printUART ) {
