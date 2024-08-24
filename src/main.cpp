@@ -209,6 +209,7 @@ void takePictureAndSendFTP() {
 void enterDeepSleep() {
   esp_sleep_enable_timer_wakeup(periodUs);
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, 0);  // WAKEUP_PIN
+  rtc_gpio_isolate(GPIO_NUM_4); // fix led stays on, see <https://forum.arduino.cc/t/esp32-onboard-led-flash-lighting-up-in-deep-sleep/1039467/4>
   esp_deep_sleep_start();
 }
 
