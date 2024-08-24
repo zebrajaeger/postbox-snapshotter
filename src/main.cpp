@@ -8,7 +8,7 @@
 #include "soc/rtc_cntl_reg.h"  // Disable brownout problems
 #include "soc/soc.h"           // Disable brownout problems
 
-// Camera Pin-Definitions für ESP32-CAM
+// Camera Pin-Definitions for ESP32-CAM
 #define PWDN_GPIO_NUM 32
 #define RESET_GPIO_NUM -1
 #define XCLK_GPIO_NUM 0
@@ -41,6 +41,7 @@ void takePictureAndSendFTP();
 void enterDeepSleep();
 void printLocalTime();
 void updateFirmware();
+void initTime();
 
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  // disable brownout detector
@@ -67,6 +68,9 @@ void setup() {
   Serial.print("IP: ");
   Serial.println(WiFi.localIP().toString());
 
+  // NTP
+  initTime();
+
   // OTA Setup
   ArduinoOTA.begin();
 
@@ -77,7 +81,7 @@ void setup() {
   pinMode(FLASH_LED_PIN, OUTPUT);
   digitalWrite(FLASH_LED_PIN, LOW);
 
-  // Überprüfen, ob der WAKEUP_PIN auf LOW ist, falls ja OTA aktivieren und nicht in Deep Sleep gehen
+  // if WAKEUP_PIN  LOW  ? -> go into OTA mode
   if (digitalRead(WAKEUP_PIN) == LOW) {
     // OTA aktiv
     Serial.println("OTA mode - Waiting for updates");
@@ -86,7 +90,7 @@ void setup() {
       delay(100);
     }
   } else {
-    // takePictureAndSendFTP();
+    takePictureAndSendFTP();
     updateFirmware();
     WiFi.mode(WIFI_OFF);
     enterDeepSleep();
@@ -131,8 +135,23 @@ void setupCamera() {
   }
 }
 
+void initTime() {
+  struct tm timeinfo;
+
+  Serial.println("Setting up time");
+  configTime(0, 0, ntpServer);  // First connect to NTP server, with 0 TZ offset
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("  Failed to obtain time");
+    return;
+  }
+  Serial.println("  Got the time from NTP");
+  // Now we can set the real timezone
+  Serial.printf("  Setting Timezone to %s\n", ntpTimezone);
+  setenv("TZ", ntpTimezone, 1);  //  Now adjust the TZ.  Clock settings are adjusted to show the new local time
+  tzset();
+}
+
 int8_t getTime(String& result) {
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
     Serial.println("Failed to obtain time");
@@ -160,16 +179,7 @@ void takePictureAndSendFTP() {
     Serial.println("Error: Could not aquire time");
     return;
   }
-  //   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  //   struct tm timeinfo;
-  //   if (!getLocalTime(&timeinfo)) {
-  //     Serial.println("Failed to obtain time");
-  //     return;
-  //   }
-  //   char ts[48] = {'\0'};
-  //   snprintf(ts, 48, "%04u_%02u_%02u-%02u_%02u_%02u.jpg", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1,
-  //   timeinfo.tm_mday,
-  //            timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  f += ".jpg";
   Serial.print("Filename: ");
   Serial.println(f);
 
@@ -217,44 +227,41 @@ void updateFirmware() {
     return;
   }
 
-  // debug
-  //   uint8_t buffer[16];
-  //   stream->readBytes((uint8_t*)&buffer, 16);
-  //   for (uint8_t i = 0; i < 16; ++i) {
-  //     printf("0x%02X: 0x%02X\n", i, buffer[i]);
-  //   }
-
-  Update.onProgress([](size_t progress, size_t total) { Serial.println(progress * 100 / total); });
+  Update.onProgress([](size_t progress, size_t total) {
+    Serial.print(progress * 100 / total);
+    Serial.println("%");
+  });
 
   if (Update.begin(s1, U_FLASH, 4)) {
     size_t written = Update.writeStream(*stream);
     if (written == Update.size()) {
-      Serial.println("Firmware Update erfolgreich geschrieben.");
+      Serial.println("Firmware Update written successfully.");
     } else {
-      Serial.println("Firmware Update fehlgeschlagen.");
+      Serial.println("Firmware Update failed.");
     }
 
     if (Update.end()) {
-      Serial.println("Update abgeschlossen!");
+      Serial.println("Update done!");
       if (Update.isFinished()) {
-        Serial.println("Backup file abgeschlossen!");
         String bck = ftp_update_file;
         String time;
         getTime(time);
-        bck = bck + "." + time; 
+        bck = bck + "." + time;
         ftp.RenameFile(ftp_update_file, bck.c_str());
+        Serial.print("Firmware genamed to ");
+        Serial.println(bck);
 
-        Serial.println("Neustart...");
+        Serial.println("Reboot...");
         ESP.restart();
       } else {
-        Serial.println("Update nicht abgeschlossen.");
+        Serial.println("Update nicht finished.");
       }
     } else {
       // !!!!
-      Serial.printf("Update Fehler: %s\n", Update.errorString());
+      Serial.printf("Update error: %s\n", Update.errorString());
     }
   } else {
-    Serial.println("Update Begin fehlgeschlagen");
+    Serial.println("Update begin failed.");
   }
   ftp.CloseFile();
   ftp.CloseConnection();

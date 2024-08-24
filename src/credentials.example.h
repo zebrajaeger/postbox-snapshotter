@@ -4,8 +4,8 @@ const char* password = "myWiFIPassword";
 
 // NTP
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 3600; // Berlin
-const int daylightOffset_sec = 0;
+// see here: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+const char* ntpTimezone = "CET-1CEST,M3.5.0,M10.5.0/3";  // Europe/Berlin
 
 // FTP Konfiguration
 const char* ftp_server = "myFtpHostOrIP";
