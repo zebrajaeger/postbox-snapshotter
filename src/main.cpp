@@ -78,6 +78,7 @@ void setup() {
   pinMode(WAKEUP_PIN, INPUT_PULLUP);
 
   // Config camera-LED
+  rtc_gpio_hold_dis(GPIO_NUM_4);
   pinMode(FLASH_LED_PIN, OUTPUT);
   digitalWrite(FLASH_LED_PIN, LOW);
 
