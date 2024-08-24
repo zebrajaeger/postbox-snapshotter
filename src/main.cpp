@@ -196,10 +196,7 @@ void takePictureAndSendFTP() {
 }
 
 void enterDeepSleep() {
-  uint64_t temp = 1000000;  // 1s
-                            //   temp *= 3600;             // 1h
-  temp *= 60;               // 1m
-  esp_sleep_enable_timer_wakeup(temp);
+  esp_sleep_enable_timer_wakeup(periodUs);
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, 0);  // WAKEUP_PIN
   esp_deep_sleep_start();
 }

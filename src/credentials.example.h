@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 // WLAN Konfiguration
 const char* ssid = "myWiFiSSID";
 const char* password = "myWiFIPassword";
@@ -13,3 +15,7 @@ const char* ftp_user = "alpineftp";
 const char* ftp_pass = "alpineftp";
 const char* ftp_work_dir = "/ftp/alpineftp";
 const char* ftp_update_file = "firmware.bin";
+
+// Picture
+uint64_t periodUs = 1000 * 1000 * 60 * 60;  // every hour
+// uint64_t periodUs = 1000*1000 * 60; // every minute
