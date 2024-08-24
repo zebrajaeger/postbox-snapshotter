@@ -3,6 +3,10 @@
 - Based on ESP32-CAM wit OV2640 camera
   - Details: <https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/>
 
+## Example picture from my post box
+
+![./doc/2024_08_24-15_08_54.jpg](./doc/2024_08_24-15_08_54.jpg)
+
 ## Features
 
 - Takes every hour an snapshot uploads it via FTP
@@ -33,10 +37,11 @@
 
 ### Nice to have
 
-- [ ] Store config in LittleFS (but how to set it?)
 - [X] Consider timezone and daylight saving time
+- [ ] Store config in LittleFS (but how to set it?)
 
 ### Maybe later...
 
 - [ ] Using a WiFi manager
-- [ ] Using  <https://esphome.github.io/esp-web-tools/> like WLED: <https://install.wled.me/>
+- [ ] Using  <https://esphome.github.io/esp-web-tools/> like WLED: <https://install.wled.me/> for easy install
+- [ ] Cleanup - because this ist not the ebst code  i've ever written...
