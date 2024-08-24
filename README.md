@@ -29,7 +29,7 @@
 
 - [X] Firmware image on ftp server for updates
 - [X] Add PSRAM support for bigger images (IPUS IP6404LQ: (2.7..3.6)V, <./doc/doc/IPUS_IPS6404_Datasheet.pdf>)
-- [ ] Let the camera run for some seconds to let gain- and color-control settle up
+- [X] Let the camera run for some seconds to let gain- and color-control settle up
 
 ### Nice to have
 

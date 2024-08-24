@@ -93,6 +93,7 @@ void setup() {
     takePictureAndSendFTP();
     updateFirmware();
     WiFi.mode(WIFI_OFF);
+    esp_camera_deinit();
     enterDeepSleep();
   }
 }
@@ -165,14 +166,25 @@ int8_t getTime(String& result) {
 }
 
 void takePictureAndSendFTP() {
-  // acquire a frame
+  // Flashlight on
   digitalWrite(FLASH_LED_PIN, HIGH);
-  delay(500);
+
+  // training mode vor AGC AWB etc
+  for (uint8_t i = 0; i < trainingShots; ++i) {
+    camera_fb_t* fb = esp_camera_fb_get();
+    if (fb) {
+      esp_camera_fb_return(fb);
+    }
+  }
+
+  // acquire the frame
   camera_fb_t* fb = esp_camera_fb_get();
-  digitalWrite(FLASH_LED_PIN, LOW);
   if (!fb) {
     Serial.println("Camera Capture Failed");
   }
+
+  // Flashlight off
+  digitalWrite(FLASH_LED_PIN, LOW);
 
   String f;
   if (getTime(f)) {
@@ -191,7 +203,6 @@ void takePictureAndSendFTP() {
   ftp.CloseFile();
   ftp.CloseConnection();
 
-  // return the frame buffer back to the driver for reuse
   esp_camera_fb_return(fb);
 }
 

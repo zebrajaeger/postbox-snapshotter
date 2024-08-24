@@ -19,3 +19,4 @@ const char* ftp_update_file = "firmware.bin";
 // Picture
 uint64_t periodUs = 1000 * 1000 * 60 * 60;  // every hour
 // uint64_t periodUs = 1000*1000 * 60; // every minute
+uint16_t trainingShots = 10;
