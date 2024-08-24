@@ -26,7 +26,9 @@
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
+// GPIO Pins
 #define FLASH_LED_PIN 4
+#define SIGNAL_LED_PIN 33
 #define WAKEUP_PIN 12
 
 // NTP
@@ -34,6 +36,7 @@
 
 // FTPClient Objekt
 ESP32_FTPClient ftp(ftp_server, ftp_user, ftp_pass);
+
 
 // --------------------
 void setupCamera();
@@ -46,16 +49,13 @@ void initTime();
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  // disable brownout detector
 
+  // Signal LED
+  pinMode(SIGNAL_LED_PIN, OUTPUT);
+  digitalWrite(SIGNAL_LED_PIN, false); // inverted 
+
   // Serial
   Serial.begin(115200);
   Serial.println("Start");
-
-  // FTP
-  ftp.enableDebug();
-
-  // Init Camera
-  Serial.println("setupCamera");
-  setupCamera();
 
   // Connect WiFI
   Serial.println("wifi");
@@ -68,35 +68,43 @@ void setup() {
   Serial.print("IP: ");
   Serial.println(WiFi.localIP().toString());
 
+  // OTA Setup
+  // if WAKEUP_PIN  LOW  ? -> go into OTA mode
+  pinMode(WAKEUP_PIN, INPUT_PULLUP);
+  if (digitalRead(WAKEUP_PIN) == LOW) {
+    ArduinoOTA.begin();
+    bool on = false;
+    Serial.println("OTA mode - Waiting for updates");
+    for (;;) {
+      on = !on;
+      digitalWrite(SIGNAL_LED_PIN, on);
+      ArduinoOTA.handle();
+      delay(100);
+    }
+  }
+
+  // FTP
+  ftp.enableDebug();
+
+  // Init Camera
+  Serial.println("setupCamera");
+  setupCamera();
+
   // NTP
   initTime();
-
-  // OTA Setup
-  ArduinoOTA.begin();
-
-  // Config GPIO for Wakeup
-  pinMode(WAKEUP_PIN, INPUT_PULLUP);
 
   // Config camera-LED
   rtc_gpio_hold_dis(GPIO_NUM_4);
   pinMode(FLASH_LED_PIN, OUTPUT);
   digitalWrite(FLASH_LED_PIN, LOW);
 
-  // if WAKEUP_PIN  LOW  ? -> go into OTA mode
-  if (digitalRead(WAKEUP_PIN) == LOW) {
-    // OTA aktiv
-    Serial.println("OTA mode - Waiting for updates");
-    while (digitalRead(WAKEUP_PIN) == LOW) {
-      ArduinoOTA.handle();
-      delay(100);
-    }
-  } else {
-    takePictureAndSendFTP();
-    updateFirmware();
-    WiFi.mode(WIFI_OFF);
-    esp_camera_deinit();
-    enterDeepSleep();
-  }
+  takePictureAndSendFTP();
+  updateFirmware();
+  digitalWrite(SIGNAL_LED_PIN, true); // LED off
+
+  WiFi.mode(WIFI_OFF);
+  esp_camera_deinit();
+  enterDeepSleep();
 }
 
 void setupCamera() {
@@ -119,10 +127,11 @@ void setupCamera() {
   config.pin_sccb_scl = SIOC_GPIO_NUM;
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 2000000;
+  config.xclk_freq_hz = 5000000;
+  //   config.xclk_freq_hz = 2000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_VGA;
-  config.jpeg_quality = 10;
+  config.frame_size = FRAMESIZE_SVGA;
+  config.jpeg_quality = 5;
   config.fb_count = 1;
   config.fb_location = CAMERA_FB_IN_DRAM, config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
 
@@ -210,7 +219,9 @@ void takePictureAndSendFTP() {
 void enterDeepSleep() {
   esp_sleep_enable_timer_wakeup(periodUs);
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_12, 0);  // WAKEUP_PIN
-  rtc_gpio_isolate(GPIO_NUM_4); // fix led stays on, see <https://forum.arduino.cc/t/esp32-onboard-led-flash-lighting-up-in-deep-sleep/1039467/4>
+  rtc_gpio_isolate(
+      GPIO_NUM_4);  // fix led stays on, see
+                    // <https://forum.arduino.cc/t/esp32-onboard-led-flash-lighting-up-in-deep-sleep/1039467/4>
   esp_deep_sleep_start();
 }
 
