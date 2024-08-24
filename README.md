@@ -9,8 +9,8 @@
 
 ## Features
 
-- Takes every hour an snapshot uploads it via FTP
-- Special pin (GPIO12, active-low) keeps device in OTA mode
+- Takes every hour an snapshot and uploads it via FTP
+- Special pin (GPIO12, active-low) keeps device in OTA mode for firmware update
 - Update via FTP possible (put the firmware.bin file into the ftp upload folder)
 
 ## Configure and build
