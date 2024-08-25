@@ -3,15 +3,19 @@
 - Based on ESP32-CAM wit OV2640 camera
   - Details: <https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/>
 
-## Example picture from my post box
-
-![./doc/2024_08_24-15_08_54.jpg](./doc/2024_08_24-15_08_54.jpg)
-
 ## Features
 
 - Takes every hour an snapshot and uploads it via FTP
 - Special pin (GPIO12, active-low) keeps device in OTA mode for firmware update
 - Update via FTP possible (put the firmware.bin file into the ftp upload folder)
+
+## Example picture from my post box
+
+![Picture from potbox](./doc/2024_08_24-15_08_54.jpg)
+
+## Snapshooter in my postbox
+
+![Snapshooter](./doc/mypostbox.jpg)
 
 ## Configure and build
 
