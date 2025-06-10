@@ -8,7 +8,6 @@
 #include "../config.h"
 #include "CameraModule.h"
 #include "FirmwareUpdater.h"
-#include "FtpClientWrapper.h"
 #include "HttpClientWrapper.h"
 #include "NtpClient.h"
 
