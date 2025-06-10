@@ -5,11 +5,10 @@ const path    = require('path');
 const fs      = require('fs');
 
 // === Ordner definieren ===
-const IMG_DIR      = path.join(__dirname, 'images');
-const FIRMWARE_DIR = path.join(__dirname, 'firmware');
+const IMG_DIR      = path.join(__dirname, 'upload');
 
 // Bei Bedarf Ordner anlegen
-for (const dir of [IMG_DIR, FIRMWARE_DIR]) {
+for (const dir of [IMG_DIR]) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
     console.log(`Ordner erstellt: ${dir}`);
@@ -59,16 +58,6 @@ app.post('/upload', upload.single('image'), (req, res) => {
   });
 });
 
-// GET /firmware/:filename
-app.get('/firmware/:filename', (req, res) => {
-  const filePath = path.join(FIRMWARE_DIR, req.params.filename);
-  res.sendFile(filePath, err => {
-    if (err) {
-      console.error(`Firmware nicht gefunden: ${filePath}`);
-      return res.status(404).json({ error: 'Firmware nicht gefunden.' });
-    }
-  });
-});
 
 // Server starten
 const PORT = process.env.PORT || 3000;

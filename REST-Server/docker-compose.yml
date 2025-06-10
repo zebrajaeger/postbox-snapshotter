@@ -1,0 +1,12 @@
+services:
+  briefkasten:
+    build: .
+    container_name: briefkasten
+    volumes:
+      - ./upload:/app/upload
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3019:3000"
+    restart: unless-stopped
+
